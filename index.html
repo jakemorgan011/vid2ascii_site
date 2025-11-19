@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>vid2ascii</title>
+
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 15px;
+        }
+
+        h1 {
+            font-size: clamp(24px, 6vw, 36px);
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
+
+        #dropZone {
+            border: 5px dashed red;
+            border-radius: 3px;
+            padding: clamp(20px, 5vw, 40px);
+            text-align: center;
+            margin-bottom: 15px;
+            background: whitesmoke;
+            color: black;
+            cursor: pointer;
+            transition: all 0.3s;
+            touch-action: manipulation;
+        }
+
+        #dropZone:active,
+        #dropZone.dragover {
+            border-color: #4CAF50;
+            background: #0a2a0a;
+        }
+
+        #dropZone p:first-child {
+            margin: 0;
+            font-size: clamp(14px, 4vw, 16px);
+        }
+
+        #dropZone p:last-child {
+            margin: 5px 0 0 0;
+            font-size: clamp(11px, 3vw, 12px);
+            color: #999;
+        }
+
+        #fileInfo {
+            margin-bottom: 15px;
+            font-size: clamp(12px, 3.5vw, 14px);
+            word-break: break-all;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: clamp(12px, 3.5vw, 14px);
+        }
+
+        .input-group input {
+            width: 100%;
+            max-width: 150px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #666;
+            border-radius: 5px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        #startBtn {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: clamp(14px, 4vw, 16px);
+            font-weight: bold;
+            cursor: pointer;
+            background: white;
+            color: blue;
+            border: none;
+            border-radius: 3px;
+            touch-action: manipulation;
+        }
+
+        #startBtn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        #startBtn:active:not(:disabled) {
+            background: grey;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #333;
+            margin: 20px 0;
+        }
+
+        #output {
+            background: #000;
+            color: #fff;
+            padding: 10px;
+            font-family: monospace;
+            white-space: pre;
+            line-height: 1;
+            font-size: clamp(6px, 2vw, 10px);
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 30px;
+            }
+
+            #startBtn {
+                width: auto;
+                min-width: 200px;
+            }
+
+            #output {
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <py-config>
+        packages = ["numpy", "pillow", "opencv-python"]
+    </py-config>
+
+    <div class="container">
+        <h1>video 2 ascii</h1>
+
+        <div id="dropZone">
+            <p>Drag and drop your video/GIF here</p>
+            <p>or tap to browse</p>
+            <input type="file" id="fileInput" accept=".mp4,.mov,.gif,.avi,.mkv,.webm" style="display: none;">
+        </div>
+
+        <div id="fileInfo" style="display: none;">
+            <strong>Selected:</strong> <span id="fileName"></span>
+        </div>
+
+        <div class="input-group">
+            <label for="widthInput">ASCII Width:</label>
+            <input type="number" id="widthInput" value="80">
+        </div>
+
+        <button id="startBtn" disabled>Convert</button>
+
+        <hr>
+
+        <script>
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const startBtn = document.getElementById('startBtn');
+
+            let selectedFile = null;
+
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            function handleFile(file) {
+                selectedFile = file;
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+                startBtn.disabled = false;
+
+                window.selectedVideoFile = file;
+            }
+        </script>
+
+        <hr style="margin: 20px 0;">
+
+        <div id="output">
+            ... ... ... ... ...
+        </div>
+    </div>
+
+    <py-script src="src/py/ascii.py"></py-script>
+
+</body>
+</html>
